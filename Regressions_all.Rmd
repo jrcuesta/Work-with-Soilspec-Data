@@ -1,0 +1,48 @@
+---
+title: "Using all the samples"
+author: "José Ramón Cuesta"
+date: "28/5/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+## Loading the packages
+```{r}
+library(caret)
+```
+
+```{r}
+AllDataClay_snvdt<-cbind(y_clay,spectra_snvdt) #Clay All
+AllDataSand_snvdt<-cbind(y_sand,spectra_snvdt) #Sand All
+AllDataSilt_snvdt<-cbind(y_silt,spectra_snvdt) #Silt All
+AllDataTotalc_snvdt<-cbind(y_totalc,spectra_snvdt) #Total Carbon All
+
+```
+
+##  MODELS FOR CLAY
+```{r}
+model_clay_all_snvdt <- train(y_clay ~.,data= AllDataClay_snvdt, 
+                         method = "pls", scale = TRUE,
+                          trControl = trainControl("cv", number = 10),
+                          tuneLength = 20)
+model_sand_all_snvdt <- train(y_sand ~.,data= AllDataSand_snvdt,                                     method = "pls", scale = TRUE,
+                          trControl = trainControl("cv", number = 10),
+                          tuneLength = 20)
+model_silt_all_snvdt <- train(y_silt ~.,data= AllDataSilt_snvdt,                                     method = "pls", scale = TRUE,
+                          trControl = trainControl("cv", number = 10),
+                          tuneLength = 20)
+model_Totalc_all_snvdt <- train(y_totalc ~.,data= AllDataTotalc_snvdt,                                     method = "pls", scale = TRUE,
+                          trControl = trainControl("cv", number = 10),
+                          tuneLength = 20)
+
+```
+## Predictions
+```{r}
+xyplot(y_clay ~ predict(spectra_snvdt),
+       type = c("p", "g"), xlab = "Predicted", ylab = "Observed")
+
+```
+
+```

@@ -1,0 +1,125 @@
+---
+title: "Desarrollo de calibraciones de suelos"
+author: "J. R. Cuesta"
+date: "9/5/2021"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+## loading the packages
+```{r}
+library(chemometrics)
+```
+
+## Mapas de scores
+Una vez obtenida la matriz de scores T la podemos representar con diferentes mapas de scores, representando los ejes X e Y a los términos elegidos para la visualización:
+```{r}
+PC_scores_1d<-predict(spc_1d_pca,spectra_1d)
+plot(PC_scores_1d[,1],PC_scores_1d[,2],col="blue",
+     xlim=c(min(PC_scores_1d[,1]),max(PC_scores_1d[,1])),
+     ylim = c(min(PC_scores_1d[,2]),max(PC_scores_1d[,2])),
+     xlab = "PC1",ylab = "PC2")
+```
+En el caso de las elipses, solo las podemos dibujar si tenemos dos variables, por lo que elegimos los dos primeros componentes principales, y lo podemos hacer del modo clásico o con el robusto para observar la diferencia:
+### Modo cásico
+```{r}
+drawMahal(PC_scores_1d[,c(1,2)], 
+          center=apply(PC_scores_1d[,c(1,2)],2,mean),
+          covariance= cov(PC_scores_1d[,c(1,2)]),
+          quantile =0.975)
+```
+### Modo robusto
+En este caso el cálculo de la covarianza es distinto
+```{r}
+library(robustbase)
+T_mcd_1d<- covMcd(PC_scores_1d[,c(1,2)])
+drawMahal(PC_scores_1d, 
+          T_mcd_1d$center,
+          covariance= T_mcd_1d$cov,
+          quantile =0.975)
+```
+### Podemos comparar las dos al mismo tiempo
+```{r}
+# Cambiamos los mragenes de 5.1 4.1 4.1 2.1
+# a 1 1 1 1
+par(mar=c(1,1,1,1))
+par(mfrow = c(1,2))
+
+drawMahal(PC_scores[,c(1,2)], 
+          center=apply(PC_scores[,c(1,2)],2,mean),
+          covariance= cov(PC_scores[,c(1,2)]),
+          quantile =0.975)
+drawMahal(PC_scores, 
+          T_mcd$center,
+          covariance= T_mcd$cov,
+          quantile =0.975)
+```
+
+
+
+
+## Detección de anómalos
+Disponemos de la matriz "T" o matriz de scores con tantas filas como muesras y tantas columnas como componentes principales seleccionados.
+```{r}
+dim(PC_scores)
+```
+Ahora queremos calcular as distancias de Mahalanobis tanto en el modo clásico como en el robusto.
+```{r}
+library(chemometrics)
+res_1d<- Moutlier(PC_scores_1d, quantile=0.975)
+#We get 3 outputs: md, rd and cutoff and the plots
+#Plot the histograms og the Mahalanobis distributions for the classical and robust methods
+hist(res_1d$md)
+
+hist(res_1d$rd)
+```
+
+## Reduciendo las muestras quitando los redundantes
+### ShenkWest Method
+```{r}
+library(prospectr)
+shenk_1d <- shenkWest(X = PC_scores_1d , d.min = 0.1, pc = 5)
+plot(shenk_1d$pc[,c(4,5)], col = rgb(0, 0, 0, 0.3), pch = 19, main = "SELECT") 
+grid()
+points(shenk_1d$pc[shenk_1d$model,], col = "red", pch = 19)
+```
+### Puchwein algorithm
+```{r}
+pu_1d <- puchwein(X = PC_scores_1d, k = 0.1, pc =5)
+plot(pu_1d$pc[,c(1,2)], col = rgb(0, 0, 0, 0.3), pch = 19, main = "puchwein") 
+grid()
+points(pu_1d$pc[pu_1d$model,],col = "red", pch = 19) # selected samples
+```
+Now we can create a sample set called "selected", and other called "non_selected" 
+```{r}
+pu_1d_sel<- spectra_1d[pu_1d$model,]
+pu_1d_nonsel<- spectra_1d[pu_1d$test,]
+matplot(as.numeric(colnames(pu_1d_sel)), t(pu_1d_sel), type = "l", 
+                   col = "blue", xlab = "wavelength", ylab = "Log 1/R",
+                   ylim = c(-0.1, 0.1))
+par(new=TRUE)
+matplot(as.numeric(colnames(pu_1d_nonsel)), t(pu_1d_nonsel), type = "l", 
+                   col = "red", xlab = " ", ylab = " ",
+                   ylim = c(-0.1, 0.1))
+```
+Hacemos lo mismo para la matriz Y
+```{r}
+y_1d_sel<-as.matrix(parameters[pu_1d$model, ])
+y_1d_sel_clay<-y_1d_sel[,1]
+y_1d_sel_sand<-y_1d_sel[,2]
+y_1d_sel_silt<-y_1d_sel[,3]
+y_1d_sel_totalc<-y_1d_sel[,4]
+y_1d_nonsel<- as.matrix(parameters[pu_1d$test, ])
+y_1d_nonsel_clay<-y_1d_nonsel[,1]
+y_1d_nonsel_sand<-y_1d_nonsel[,2]
+y_1d_nonsel_silt<-y_1d_nonsel[,3]
+y_1d_nonsel_totalc<-y_1d_nonsel[,4]
+
+par(mfrow = c(1,2))
+hist(y_1d_sel[,2], main = "Sand selected")
+hist(y_1d_nonsel[,2], main = "Sand non selected")
+                       
+```
+

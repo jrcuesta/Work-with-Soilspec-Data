@@ -1,0 +1,132 @@
+---
+title: "Soilspec_parte1"
+author: "José Ramón Cuesta"
+date: "29/5/2021"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+## Cargando los paquetes necesarios
+```{r}
+library(prospectr)
+library(caret)
+library(chemometrics)
+```
+
+## Preparación de los datos
+```{r}
+parameters<-as.matrix(datsoilspc[,1:4])
+spectra<-as.matrix(datsoilspc$spc)    # The spectra is in reflectance
+spc_abs<- apply(spectra, 2, log1R)    # spectra converted to Absorbance
+```
+
+## Visualización de los espectros
+```{r}
+#en reflectancia
+matplot(wavelengths, t(spectra), type = "l", 
+        xlab = "wavelength", ylab = "Reflectance")
+# en absorbancia
+matplot(wavelengths, t(spc_abs), type = "l", 
+        xlab = "wavelength", ylab = "log 1/R")
+```
+
+## Aplicando los tratamientos matemáticos
+Estos son unos de los tratamientos matemáticos más comunes que utilizo:
+### SNV Only
+```{r}
+spectra_snv<-scale(t(spc_abs),center=TRUE,scale=TRUE)
+spectra_snv<- t(spectra_snv)
+colnames(spectra_snv)<- wavelengths
+matplot(as.numeric(colnames(spectra_snv)), t(spectra_snv), type = "l",         xlab = "wavelength", ylab = "Log 1/R")
+```
+### SNV and Detrend
+```{r}
+spectra_snvdt<- detrend(spc_abs, as.numeric(colnames(spectra)))
+matplot(as.numeric(colnames(spectra_snvdt)), t(spectra_snvdt), 
+        type = "l", col = "blue", xlab = "wavelength", 
+        ylab = "Log 1/R")
+```
+### SNV+DT+1D SPECTRA
+```{r}
+spectra_1d<-gapDer(spectra_snvdt,m=1,w=21,s=4)
+matplot(as.numeric(colnames(spectra_1d)),t(spectra_1d) ,type="l",
+        col = "blue", xlab = "wavelength", ylab = "Log 1/R")
+```
+### SNV + 2D SPECTRA
+```{r}
+spectra_2d<-gapDer(spectra_snv,m=2,w=21,s=4)
+matplot(as.numeric(colnames(spectra_2d)), t(spectra_2d) ,type="l",
+        col = "blue", xlab = "wavelength", ylab = "Log 1/R")
+```
+## CORRELATION OF SPECTRA & PARAMETERS
+### Math treatment spectra correlation with Clay
+Spectra is the same for all the parameters, so we change de column number of the parameter.
+```{r}
+cor_specsnv_clay<-cor(parameters[,1],spectra_snv[,1:ncol(spectra_snv)])
+cor_specsnvdt_clay<-cor(parameters[,1],spectra_snvdt[,1:ncol(spectra_snvdt)])
+cor_spec1d_clay<-cor(parameters[,1],spectra_1d[,1:ncol(spectra_1d)])
+cor_spec2d_clay<-cor(parameters[,1],spectra_2d[,1:ncol(spectra_2d)])
+matplot(as.numeric(colnames(spectra_snv)),t(cor_specsnv_clay),
+        type = "l",xlab="nm",col = "red", ylab="Correlation",
+        ylim = c(-1, 1),xlim = c(350,2500),
+        main = "Mathtreatments Correlations with Clay")
+par(new = TRUE)
+matplot(as.numeric(colnames(spectra_snvdt)),t(cor_specsnvdt_clay),
+        type = "l",xlab=" ",col = "brown", ylab=" ",
+        main = " ", ylim = c(-1, 1), xlim = c(350,2500))
+par(new = TRUE)
+matplot(as.numeric(colnames(spectra_1d)),t(cor_spec1d_clay),
+        type = "l",xlab=" ",col = "green", ylab=" ",
+        main = " ", ylim = c(-1, 1),xlim = c(350,2500))
+par(new = TRUE)
+matplot(as.numeric(colnames(spectra_2d)),t(cor_spec2d_clay),
+        type = "l",xlab=" ",col = "orange", ylab=" ",
+        main = " ", ylim = c(-1, 1),xlim = c(350,2500))
+```
+
+## LOOKING TO THE "Y" MATRIX
+### HISTOGRAMS
+```{r}
+hist(parameters[,1], main = "Clay")
+hist(parameters[,2], main = "Sand")
+hist(parameters[,3], main = "Silt")
+hist(parameters[,4], main = "Total Carbon")
+```
+
+### CORRELATION MATRIX
+```{r}
+library(corrplot)
+cor<-cor(parameters)
+corrplot(cor, method = "circle")
+```
+
+## Principal Components Analysis with CARET
+```{r}
+spc_1d_pca<-preProcess(spectra_1d,
+                       method = c("center", "scale","pca"),
+                       thresh = 0.95)
+PC_scores_1d<-predict(spc_1d_pca,spectra_1d)
+plot(PC_scores_1d[,1],PC_scores_1d[,2],col="blue",
+     xlim=c(min(PC_scores_1d[,1]),max(PC_scores_1d[,1])),
+     ylim = c(min(PC_scores_1d[,2]),max(PC_scores_1d[,2])),
+     xlab = "PC1",ylab = "PC2")
+```
+
+###standard deviation & mean spectra
+```{r}
+matplot(as.numeric(colnames(spectra_1d)),spc_1d_pca$std, type = "l", col = "blue")
+
+matplot(as.numeric(colnames(spectra_1d)),spc_1d_pca$mean, type = "l", col = "red")
+```
+### Loadings
+```{r}
+matplot(as.numeric(colnames(spectra_1d)),spc_1d_pca$rotation[,1], type = "l", col = "blue")
+```
+### Plotting projections
+```{r}
+matplot(seq(1,5,by=1),t(PC_scores_1d[,1:5]),pch=1, col = "blue",
+        xlab = "PCs", ylab = "Projections")
+```
+

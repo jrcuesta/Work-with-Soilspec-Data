@@ -1,0 +1,32 @@
+---
+title: "Study "Y" Matrix"
+author: "J. R. Cuesta"
+date: "9/5/2021"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+#### LOOKING TO THE "Y" MATRIX
+
+## BOXPLOTS
+```{r}
+boxp_clay<- boxplot(datsoilspc$clay, main = "Clay")
+boxplot(datsoilspc$sand, main = "Sand")
+boxplot(datsoilspc$silt, main = "Silt")
+boxplot(datsoilspc$TotalCarbon)
+```
+
+## HISTOGRAMS
+```{r}
+hist(datsoilspc$clay, main = "Clay")
+abline(v=boxp_clay$stats, col = "red")
+hist(datsoilspc$sand, main = "Sand")
+hist(datsoilspc$silt, main = "Silt")
+hist(datsoilspc$TotalCarbon)
+```
+Creamos subconjuntos acorde a la distribución de los boxplots

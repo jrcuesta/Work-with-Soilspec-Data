@@ -1,0 +1,132 @@
+---
+title: "Building the Models"
+author: "José Ramón Cuesta"
+date: "28/5/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+## Loading the packages
+```{r}
+library(caret)
+```
+
+```{r}
+trainDataClay<-cbind(y_sel_clay,pu_sel) #Clay Training
+testDataClay<-cbind(y_nonsel_clay,pu_nonsel) #Clay Test
+trainDataSand<-cbind(y_sel_sand,pu_sel) #Clay Training
+testDataSand<-cbind(y_nonsel_sand,pu_nonsel) #Clay Test
+trainDataSilt<-cbind(y_sel_silt,pu_sel) #Clay Training
+testDataSilt<-cbind(y_nonsel_silt,pu_nonsel) #Clay Test
+trainDataTotalc<-cbind(y_sel_totalc,pu_sel) #Clay Training
+testDataTotalc<-cbind(y_nonsel_totalc,pu_nonsel) #Clay Test
+```
+
+
+##  MODELS FOR CLAY
+```{r}
+model_clay_snvdt <- train(y_sel_clay ~.,data=trainDataClay,                                     method = "pls", scale = TRUE,
+                          trControl = trainControl("cv", number = 10),
+                          tuneLength = 20)
+model_sand_snvdt <- train(y_sel_sand ~.,data=trainDataSand,                                     method = "pls", scale = TRUE,
+                          trControl = trainControl("cv", number = 10),
+                          tuneLength = 20)
+model_silt_snvdt <- train(y_sel_silt ~.,data=trainDataSilt,                                     method = "pls", scale = TRUE,
+                          trControl = trainControl("cv", number = 10),
+                          tuneLength = 20)
+model_Totalc_snvdt <- train(y_sel_totalc ~.,data=trainDataTotalc,                                     method = "pls", scale = TRUE,
+                          trControl = trainControl("cv", number = 10),
+                          tuneLength = 20)
+
+```
+## Predicting the non selected samples
+```{r}
+## CLAY PREDICTIONS
+
+pred_clay_snvdt_pusel <- predict(model_clay_snvdt,pu_sel)
+
+pred_clay_snvdt_punonsel <- predict(model_clay_snvdt,pu_nonsel)
+pred_clay_snvdt_punonsel<- data.frame(obs = y_nonsel[,1], pred = pred_clay_snvdt_punonsel)
+
+defaultSummary(pred_clay_snvdt_punonsel)
+pred_sand_snvdt_pusel <- predict(model_sand_snvdt,pu_sel)
+pred_sand_snvdt_punonsel <- predict(model_sand_snvdt,pu_nonsel)
+pred_silt_snvdt_pusel <- predict(model_silt_snvdt,pu_sel)
+pred_silt_snvdt_punonsel <- predict(model_silt_snvdt,pu_nonsel)
+pred_totalc_snvdt_pusel <- predict(model_Totalc_snvdt,pu_sel)
+pred_totalc_snvdt_punonsel <- predict(model_Totalc_snvdt,pu_nonsel)
+```
+
+Some plots
+### CLAY
+```{r}
+plot(pred_clay_snvdt_pusel, y_sel[,1],xlim=c(0,80),ylim=c(0,80),
+     ylab="Lab Clay", xlab="Predicted Clay",
+     col = "red", pch=19)
+par(new=TRUE)
+plot(pred_clay_snvdt_punonsel$pred, pred_clay_snvdt_punonsel$obs ,xlim=c(0,80),ylim=c(0,80),
+     ylab=" ", xlab=" ",
+     col = "black", pch=1)
+legend(x = "topleft",          # Position
+       legend = c("Sel", "Non Sel"),  # Legend texts
+       col = c("red","black"),           
+       pch = c(19,1))
+legend(x = "bottomright",          # Position
+       legend = c( "RMSE = 9.3", "RSQ = 0.75", "Math = SNV+DT"),
+       box.lty = 0,cex=0.6)  
+       
+
+```
+
+```{r}
+plot(pred_sand_snvdt_pusel, y_sel[,2],xlim=c(0,50),ylim=c(0,50),
+     ylab="Lab Sand", xlab="Predicted Sand",
+      col = "red", pch=19)
+par(new=TRUE)
+plot(pred_sand_snvdt_punonsel, y_nonsel[,2],xlim=c(0,50),ylim=c(0,50),
+     ylab=" ", xlab=" ",
+     col = "black", pch=1)
+legend(x = "topleft",          # Position
+       legend = c("Sel", "Non Sel"),  # Legend texts
+       col = c("red","black"),           
+       pch = c(19,1))
+legend(x = "bottomright",          # Position
+       legend = c( "RMSE = 5.8", "RSQ = 0.31","Math = SNV+DT"),
+       box.lty = 0,cex=0.8)
+```
+
+```{r}
+plot(pred_silt_snvdt_pusel, y_sel[,3],xlim=c(0,100),ylim=c(0,100),
+     ylab="Lab Silt", xlab="Predicted Silt", col = "red", pch=19)
+par(new=TRUE)
+plot(pred_silt_snvdt_punonsel, y_nonsel[,3],xlim=c(0,100),ylim=c(0,100),
+     ylab=" ", xlab=" ", col = "black", pch=1)
+legend(x = "topleft",          # Position
+       legend = c("Sel", "Non Sel"),  # Legend texts
+       col = c("red","black"),           
+       pch = c(19,1))
+legend(x = "bottomright",          # Position
+       legend = c( "RMSE = 10.2", "RSQ = 0.65","Math = SNV+DT"),
+       box.lty = 0,cex=0.8)
+
+```
+
+```{r}
+plot(pred_totalc_snvdt_pusel, y_sel[,4],
+     ylab="Lab Total Carbon ", xlab="Pred Total Carbon",
+     xlim=c(0,15),ylim=c(0,15),col = "red", pch=19)
+par(new=TRUE)
+plot(pred_totalc_snvdt_punonsel, y_nonsel[,4],
+     ylab=" ", xlab=" ",
+     xlim=c(0,15),ylim=c(0,15),
+     col = "black", pch=1)
+legend(x = "topleft",          # Position
+       legend = c("Sel", "Non Sel"),  # Legend texts
+       col = c("red","black"),           
+       pch = c(19,1))
+legend(x = "bottomright",          # Position
+       legend = c( "RMSE = 0.77", "RSQ = 0.66","Math = SNV+DT"),
+       box.lty = 0,cex=0.8)
+```
